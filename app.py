@@ -4,21 +4,34 @@ from flask import Flask, Response
 
 app = Flask(__name__)
 
-# Configurar variables de entorno para autenticación en Bitbucket
-BITBUCKET_TOKEN = os.getenv("BITBUCKET_TOKEN")
-BITBUCKET_REPO = "strovo-tv/amaterasu"  # Reemplaza con tu usuario/repositorio
-BRANCH_NAME = "IZANAGI"  # Tu rama en Bitbucket
-FILE_PATH = "strovo"  # Nombre del archivo M3U dentro del repo
+# Variables de entorno para GitHub
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_USER = os.getenv("GITHUB_USER")
+GITHUB_REPO = os.getenv("GITHUB_REPO")
+GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "main")
+GITHUB_FILE = os.getenv("GITHUB_FILE")
 
 @app.route("/")
 def get_m3u():
-    url = f"https://bitbucket.org/{BITBUCKET_REPO}/raw/{BRANCH_NAME}/{FILE_PATH}?access_token={BITBUCKET_TOKEN}"
-    response = requests.get(url)
+    if not all([GITHUB_TOKEN, GITHUB_USER, GITHUB_REPO, GITHUB_FILE]):
+        return "Error: Variables de entorno de GitHub no están configuradas.", 500
+
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}?ref={GITHUB_BRANCH}"
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+
+    response = requests.get(url, headers=headers)
 
     if response.status_code == 200:
-        return Response(response.text, mimetype="audio/x-mpegurl")
+        json_data = response.json()
+        file_content = json_data.get("download_url")
+
+        if file_content:
+            raw_file = requests.get(file_content)
+            return Response(raw_file.text, mimetype="audio/x-mpegurl")
+        else:
+            return "Error: No se pudo obtener el enlace de descarga.", 500
     else:
-        return f"Error: No se pudo obtener el archivo. Código {response.status_code}", 500
+        return f"Error: No se pudo acceder al archivo. Código {response.status_code}", 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
