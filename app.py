@@ -11,7 +11,7 @@ GITHUB_REPO = os.getenv("GITHUB_REPO")
 GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "main")
 GITHUB_FILE = os.getenv("GITHUB_FILE")
 
-@app.route("/lista.m3u")
+@app.route("/strovo-tv.m3u")
 def get_m3u():
     # Verifica que las variables estén definidas
     if not all([GITHUB_TOKEN, GITHUB_USER, GITHUB_REPO, GITHUB_FILE]):
